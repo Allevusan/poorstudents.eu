@@ -1,0 +1,180 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Auth.js (next-auth) ----------
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ---------- Core ----------
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  name            String?
+  emailVerified   DateTime?
+  image           String?
+  countryCode     String    @default("")
+  institutionId   String?
+  isAcademicEmail Boolean   @default(false)
+  createdAt       DateTime  @default(now())
+
+  institution Institution? @relation(fields: [institutionId], references: [id])
+  accounts    Account[]
+  sessions    Session[]
+  couponCodes CouponCode[]
+  redemptions Redemption[]
+}
+
+model Institution {
+  id           String   @id @default(cuid())
+  name         String
+  countryCode  String
+  emailDomains String[]
+  isActive     Boolean  @default(true)
+
+  users           User[]
+  resolvedDomains UnknownDomain[]
+}
+
+model UnknownDomain {
+  id                    String   @id @default(cuid())
+  domain                String   @unique
+  sightings             Int      @default(1)
+  firstSeenAt           DateTime @default(now())
+  lastSeenAt            DateTime @default(now())
+  resolvedInstitutionId String?
+
+  resolvedInstitution Institution? @relation(fields: [resolvedInstitutionId], references: [id])
+}
+
+enum Category {
+  STUDY_NOTES
+  SOFTWARE_DESIGN
+  AI_TOOLS
+  LANGUAGE_LEARNING
+  DEVELOPER_TOOLS
+  CLOUD_STORAGE
+  EXAM_PREP
+  WELLBEING
+}
+
+enum RedemptionType {
+  STATIC_CODE
+  UNIQUE_CODE
+  LINK_ONLY
+}
+
+model Merchant {
+  id                 String   @id @default(cuid())
+  name               String
+  slug               String   @unique
+  logoUrl            String?
+  websiteUrl         String
+  description        String
+  category           Category
+  availableCountries String[] // ["ALL"] or ISO country codes
+  contactEmail       String
+  isActive           Boolean  @default(true)
+
+  deals Deal[]
+}
+
+model Deal {
+  id                 String         @id @default(cuid())
+  merchantId         String
+  title              String
+  description        String
+  discountLabel      String
+  category           Category
+  redemptionType     RedemptionType
+  staticCode         String?
+  redemptionUrl      String
+  terms              String
+  availableCountries String[] // ["ALL"] or ISO country codes
+  requiresAccount    Boolean        @default(false)
+  isFeatured         Boolean        @default(false)
+  expiresAt          DateTime?
+  isActive           Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+
+  merchant    Merchant     @relation(fields: [merchantId], references: [id], onDelete: Cascade)
+  couponCodes CouponCode[]
+  redemptions Redemption[]
+}
+
+model CouponCode {
+  id               String    @id @default(cuid())
+  dealId           String
+  code             String
+  assignedToUserId String?
+  assignedAt       DateTime?
+
+  deal           Deal         @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  assignedToUser User?        @relation(fields: [assignedToUserId], references: [id])
+  redemptions    Redemption[]
+
+  @@unique([dealId, code])
+  @@index([dealId, assignedToUserId])
+}
+
+model Redemption {
+  id          String   @id @default(cuid())
+  userId      String?
+  dealId      String
+  codeId      String?
+  countryCode String   @default("")
+  createdAt   DateTime @default(now())
+
+  user User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  deal Deal        @relation(fields: [dealId], references: [id], onDelete: Cascade)
+  code CouponCode? @relation(fields: [codeId], references: [id], onDelete: SetNull)
+}
+
+model MerchantLead {
+  id                 String   @id @default(cuid())
+  companyName        String
+  contactName        String
+  email              String
+  website            String
+  productDescription String
+  createdAt          DateTime @default(now())
+}
