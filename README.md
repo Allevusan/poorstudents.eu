@@ -30,15 +30,15 @@ zero.
    ```
 
    You need a running Postgres and a `DATABASE_URL` pointing at it. Everything
-   else has a sensible dev default — in particular, if `EMAIL_SERVER` is not
+   else has a sensible dev default — in particular, if `RESEND_API_KEY` is not
    set, magic sign-in links are **printed to the server console** instead of
-   being emailed, so you can sign in locally with no SMTP account.
+   being emailed, so you can sign in locally with no Resend account.
 
 3. **Create the schema and seed data** (~19 placeholder merchants/deals and
    real university email domains for SE, DK, NO, FI, NL, DE, PL):
 
    ```bash
-   npm run db:setup
+   npm run db:setup   # prisma migrate deploy + seed (idempotent)
    ```
 
 4. **Run it:**
@@ -82,8 +82,11 @@ see the share of users with university emails, broken down by country.
 
 ## Deploying
 
-Set the same environment variables from `.env.example` in Vercel (with a real
-`EMAIL_SERVER` this time), point `DATABASE_URL` at a hosted Postgres, and run
-`npx prisma db push && npx prisma db seed` against it once.
+See [DEPLOY.md](./DEPLOY.md) for the full path to a live Vercel deployment
+(Neon database, Resend email, environment variables, one-time production
+seed). In short: `npm run build` runs `prisma migrate deploy && next build`,
+so every deploy migrates the database, and all six env vars in
+`.env.example` are required in production — startup fails with a clear error
+if one is missing.
 
 See [ROADMAP.md](./ROADMAP.md) for what is deliberately not in v1.

@@ -39,5 +39,11 @@ ADMIN_EMAILS="admin@example.com"
 ENV
 fi
 
-# 4. Schema + seed data (both idempotent: db push diffs, seed upserts).
-npm run db:setup
+# 4. Schema + seed data (idempotent: applied migrations are skipped, the
+#    seed upserts). Containers whose database predates prisma/migrations were
+#    provisioned with `db push`; baseline them so migrate deploy succeeds.
+if ! npx prisma migrate deploy; then
+  npx prisma migrate resolve --applied 20260724000000_init
+  npx prisma migrate deploy
+fi
+npm run seed

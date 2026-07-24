@@ -1,8 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { createTransport } from "nodemailer";
 import { prisma } from "@/lib/prisma";
+import { sendMail } from "@/lib/mailer";
 
 export async function submitLead(formData: FormData) {
   const get = (key: string) => {
@@ -24,15 +24,13 @@ export async function submitLead(formData: FormData) {
 
   await prisma.merchantLead.create({ data: lead });
 
-  // Best-effort admin notification — a missing SMTP config or a mail hiccup
-  // must never lose the lead, which is already saved above.
+  // Best-effort admin notification — a mail hiccup must never lose the
+  // lead, which is already saved above.
   const adminEmail = (process.env.ADMIN_EMAILS ?? "").split(",")[0]?.trim();
-  if (process.env.EMAIL_SERVER && adminEmail) {
+  if (adminEmail) {
     try {
-      const transport = createTransport(process.env.EMAIL_SERVER);
-      await transport.sendMail({
+      await sendMail({
         to: adminEmail,
-        from: process.env.EMAIL_FROM ?? "PoorStudents <hello@poorstudents.eu>",
         subject: `New merchant lead: ${lead.companyName}`,
         text: [
           `Company: ${lead.companyName}`,
