@@ -2,8 +2,8 @@ import type { AuthOptions } from "next-auth";
 import { getServerSession } from "next-auth";
 import EmailProvider from "next-auth/providers/email";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { createTransport } from "nodemailer";
 import { cookies } from "next/headers";
+import { sendMail } from "@/lib/mailer";
 import { prisma } from "@/lib/prisma";
 import { classifyEmailDomain } from "@/lib/academic";
 import { COUNTRY_COOKIE, isValidCountry } from "@/lib/countries";
@@ -19,16 +19,11 @@ export const authOptions: AuthOptions = {
     EmailProvider({
       from: process.env.EMAIL_FROM ?? "PoorStudents <hello@poorstudents.eu>",
       maxAge: 24 * 60 * 60,
-      async sendVerificationRequest({ identifier, url, provider }) {
-        // No SMTP configured (local dev): print the magic link instead of sending.
-        if (!process.env.EMAIL_SERVER) {
-          console.log(`\n✉️  Magic link for ${identifier}:\n${url}\n`);
-          return;
-        }
-        const transport = createTransport(process.env.EMAIL_SERVER);
-        await transport.sendMail({
+      async sendVerificationRequest({ identifier, url }) {
+        // Sent via Resend; with no RESEND_API_KEY (local dev), sendMail
+        // prints the magic link to the console instead.
+        await sendMail({
           to: identifier,
-          from: provider.from,
           subject: "Your sign-in link for poorstudents.eu",
           text: `Sign in to poorstudents.eu:\n\n${url}\n\nThis link expires in 24 hours. If you didn't request it, ignore this email.`,
           html: [

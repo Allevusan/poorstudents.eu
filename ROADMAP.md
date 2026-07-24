@@ -43,6 +43,4 @@ merchants start asking for harder guarantees:
   already separate from language, so adding locales is additive.
 - **Non-EU expansion** (UK, CH, EEA beyond NO) — country list is a single
   constant in `lib/countries.ts`.
-- **Proper migrations** — v1 uses `prisma db push`; switch to
-  `prisma migrate` before the first production schema change.
 - **Rate limiting** on the redeem endpoint and magic-link requests.

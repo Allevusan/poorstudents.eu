@@ -1,3 +1,7 @@
+// Idempotent seed: every write is an upsert (or find-then-update), keyed on
+// merchant slug, deal title, institution name and coupon code — safe to run
+// repeatedly, including against the production database via
+//   DATABASE_URL="postgresql://…" npm run seed
 import { PrismaClient, Category, RedemptionType } from "@prisma/client";
 
 const prisma = new PrismaClient();
